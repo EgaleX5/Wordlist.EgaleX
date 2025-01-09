@@ -2,16 +2,16 @@
 
 Welcome to the **Wordlist Generator** project created by EgaleX5!
 
-#### Overview
+###### Overview
 This tool generates customizable wordlists that can be used for penetration testing and security research. You can specify the characters, the minimum and maximum length of the words, and the name of the output wordlist file. 
 
-### Features
+###### Features
 - Generate wordlists with custom characters
 - Specify the word length range
 - Track progress with a progress bar
 - Save the generated wordlist to a file
 
-#### Requirements
+##### Requirements
 - Python 3.x
 - `tqdm` library for progress bars
 - `termcolor` library for colorful output
@@ -22,11 +22,11 @@ This tool generates customizable wordlists that can be used for penetration test
 3.     pkg install git
 4.     pip install tqdm termcolor
 
-    ### ⚡Clone the repository⚡
+    #### ⚡Clone the repository⚡
        git clone https://github.com/EgaleX5/Wordlist.EgaleX.git
        cd ~/Wordlist.EgaleX
        chmod +x EgaleX5
-   ### run 🦅
+   #### run 🦅
    
        python3 EgaleX5
    #### Happy Hacking with EgaleX5
