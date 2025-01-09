@@ -29,7 +29,7 @@ This tool generates customizable wordlists that can be used for penetration test
    ## run 🦅
    
        python3 EgaleX5
-   # Happy Hacking with EgaleX5
+   ### Happy Hacking with EgaleX5
 
    Our Group 👇
    https://chat.whatsapp.com/KrldYIcUxGF0K3vk5cgHEX
