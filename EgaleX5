@@ -1,0 +1,46 @@
+import os
+from tqdm import tqdm  # For progress bar
+from termcolor import colored  # For colorful text
+import itertools
+
+# Function to print colorful banner
+def print_banner():
+    os.system('clear')  # Clear the screen to create a new page feel
+    print(colored("=== E G A L E X 5 ===", "red", attrs=["bold"]))
+    print(colored("    --- Hacking is not a crime, it's skills ---", "red"))
+    print(colored("=" * 60, "white"))
+    print(colored("Welcome to generate Wordlist  🦅", "yellow", attrs=["bold"]))
+    print(colored("=" * 60, "white"))
+
+# Function to create wordlist
+def generate_wordlist(characters, min_length, max_length, output_file):
+    total_combinations = sum(len(characters) ** i for i in range(min_length, max_length + 1))
+    progress_bar = tqdm(total=total_combinations, desc=colored("Generating Wordlist", "green"), ncols=80)
+
+    with open(output_file, "w") as file:
+        for length in range(min_length, max_length + 1):
+            for combination in itertools.product(characters, repeat=length):
+                word = ''.join(combination)
+                file.write(word + "\n")
+                progress_bar.update(1)
+
+    progress_bar.close()
+    print(colored(f"\nWordlist saved to: {output_file}", "cyan", attrs=["bold"]))
+
+# Main function
+def main():
+    print_banner()
+
+    # Inputs with unique colors
+    characters = input(colored("\nEnter characters (e.g., abc123): ", "blue", attrs=["bold"]))
+    min_length = int(input(colored("Enter minimum length: ", "magenta", attrs=["bold"])))
+    max_length = int(input(colored("Enter maximum length: ", "green", attrs=["bold"])))
+    wordlist_name = input(colored("Enter wordlist name (without extension): ", "yellow", attrs=["bold"]))
+    
+    # Save file path with the given name
+    output_file = os.path.expanduser(f"~/{wordlist_name}.txt")
+
+    generate_wordlist(characters, min_length, max_length, output_file)
+
+if __name__ == "__main__":
+    main()
