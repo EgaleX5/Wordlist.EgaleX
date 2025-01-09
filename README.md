@@ -9,12 +9,7 @@ This tool generates customizable wordlists that can be used for penetration test
 - Generate wordlists with custom characters
 - Specify the word length range
 - Track progress with a progress bar
-- Save the generated wordlist to a file
-
-##### Requirements
-- Python 3.x
-- `tqdm` library for progress bars
-- `termcolor` library for colorful output
+- Save the generated wordlist to a file 
 
 ### Installation
 1.     pkg update && upgrade -y
