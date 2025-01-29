@@ -1,0 +1,105 @@
+import os
+from tqdm import tqdm
+from termcolor import colored
+import itertools
+import multiprocessing
+import time
+import concurrent.futures
+
+# Function to print colorful banner
+def print_banner():
+    os.system('clear')  # Clear the screen to create a new page feel
+    print(colored("=== E G A L E X 5 ===", "red", attrs=["bold"]))
+    print(colored("    --- Hacking is not a crime, it's skills ---", "red"))
+    print(colored("=" * 60, "white"))
+    print(colored("Welcome to generate Wordlist  🦅", "yellow", attrs=["bold"]))
+    print(colored("=" * 60, "white"))
+
+# Batch writing function to optimize I/O operations
+def batch_write(file, words, lock):
+    with lock:
+        with open(file, "a") as f:
+            f.writelines(words)
+
+# Worker function to generate wordlist in parallel
+def generate_wordlist_worker(characters, length_range, output_file, progress_bar, lock):
+    words = []
+    for length in range(length_range[0], length_range[1]):
+        for combination in itertools.product(characters, repeat=length):
+            words.append(''.join(combination) + "\n")
+            progress_bar.update(1)
+            if len(words) >= 1000:  # Batch size for writing
+                batch_write(output_file, words, lock)
+                words.clear()
+    
+    # Write remaining words
+    if words:
+        batch_write(output_file, words, lock)
+
+# Function to estimate time for wordlist generation
+def estimate_time(characters, min_length, max_length):
+    total_combinations = sum(len(characters) ** i for i in range(min_length, max_length + 1))
+    
+    # Quick estimation of time: Generate a few combinations to measure speed
+    start_time = time.time()
+    test_combinations = list(itertools.product(characters, repeat=min_length))
+    end_time = time.time()
+    
+    time_per_combination = (end_time - start_time) / len(test_combinations)  # time per combination
+    
+    total_time = time_per_combination * total_combinations
+    return total_time
+
+# Function to generate wordlist with progress bar and parallelization
+def generate_wordlist(characters, min_length, max_length, output_file):
+    total_combinations = sum(len(characters) ** i for i in range(min_length, max_length + 1))
+    progress_bar = tqdm(total=total_combinations, desc=colored("Generating Wordlist", "green"), ncols=80)
+    
+    # Lock to prevent multiple processes from accessing the file simultaneously
+    lock = multiprocessing.Lock()
+    
+    # Calculate ranges for workers
+    num_workers = multiprocessing.cpu_count()
+    ranges = [(min_length + (max_length - min_length) // num_workers * i, 
+               min_length + (max_length - min_length) // num_workers * (i + 1)) 
+              for i in range(num_workers)]
+
+    # Use multiprocessing with concurrent futures to handle each range of lengths
+    with concurrent.futures.ProcessPoolExecutor(max_workers=num_workers) as executor:
+        futures = []
+        for r in ranges:
+            futures.append(executor.submit(generate_wordlist_worker, characters, r, output_file, progress_bar, lock))
+        
+        # Wait for all workers to complete
+        for future in concurrent.futures.as_completed(futures):
+            future.result()
+
+    progress_bar.close()
+    print(colored(f"\nWordlist saved to: {output_file}", "cyan", attrs=["bold"]))
+
+# Main function
+def main():
+    print_banner()
+    
+    # Inputs with unique colors
+    characters = input(colored("\nEnter characters (e.g., abc123): ", "blue", attrs=["bold"]))
+    min_length = int(input(colored("Enter minimum length: ", "magenta", attrs=["bold"])))
+    max_length = int(input(colored("Enter maximum length: ", "green", attrs=["bold"])))
+    wordlist_name = input(colored("Enter wordlist name (without extension): ", "yellow", attrs=["bold"]))
+
+    # Estimate time before starting the generation
+    estimated_time = estimate_time(characters, min_length, max_length)
+    print(colored(f"\nEstimated time for completion: {estimated_time / 60:.2f} minutes", "cyan", attrs=["bold"]))
+    
+    # Check if the file already exists and ask for confirmation
+    output_file = os.path.expanduser(f"~/{wordlist_name}.txt")
+    if os.path.exists(output_file):
+        overwrite = input(colored(f"File {wordlist_name}.txt already exists. Overwrite? (y/n): ", "red"))
+        if overwrite.lower() != 'y':
+            print(colored("Operation canceled.", "red"))
+            return
+
+    generate_wordlist(characters, min_length, max_length, output_file)
+
+if __name__ == "__main__":
+    main()

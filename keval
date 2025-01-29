@@ -1,0 +1,106 @@
+import os
+import itertools
+import zipfile
+from tqdm import tqdm
+from termcolor import colored
+import threading
+import time
+
+
+# Function to print banner
+def print_banner():
+    os.system('clear')
+    print(colored("=== E G A L E X 5 ===", "red", attrs=["bold"]))
+    print(colored("    --- Hacking is not a crime, it's skills ---", "red"))
+    print(colored("=" * 60, "white"))
+    print(colored("Welcome to Generate Wordlist 🦅", "yellow", attrs=["bold"]))
+    print(colored("=" * 60, "white"))
+
+
+# Generate wordlist function with threading
+def generate_wordlist(characters, min_length, max_length, output_file):
+    total_combinations = sum(len(characters) ** i for i in range(min_length, max_length + 1))
+    progress_bar = tqdm(total=total_combinations, desc=colored("Generating Wordlist", "green"), ncols=80)
+
+    def write_combinations(length):
+        with open(output_file, "a") as file:
+            for combination in itertools.product(characters, repeat=length):
+                word = ''.join(combination)
+                file.write(word + "\n")
+                progress_bar.update(1)
+
+    threads = []
+    for length in range(min_length, max_length + 1):
+        t = threading.Thread(target=write_combinations, args=(length,))
+        threads.append(t)
+        t.start()
+
+    for t in threads:
+        t.join()
+
+    progress_bar.close()
+    print(colored(f"\nWordlist saved to: {output_file}", "cyan", attrs=["bold"]))
+
+
+# Compress the generated wordlist
+def compress_wordlist(output_file):
+    zip_file = output_file.replace(".txt", ".zip")
+    with zipfile.ZipFile(zip_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        zipf.write(output_file, os.path.basename(output_file))
+    os.remove(output_file)
+    print(colored(f"Wordlist compressed and saved as: {zip_file}", "cyan", attrs=["bold"]))
+
+
+# Predict wordlist size and estimate time
+def predict_size_and_time(characters, min_length, max_length):
+    total_combinations = sum(len(characters) ** i for i in range(min_length, max_length + 1))
+    size_in_mb = (total_combinations * (max_length + min_length) / 2) / (1024 * 1024)
+
+    # Time estimation sample
+    sample_length = min_length
+    sample_combinations = itertools.product(characters, repeat=sample_length)
+    sample_count = 1000  # Sample size for estimation
+
+    start_time = time.time()
+    for i, _ in enumerate(sample_combinations):
+        if i >= sample_count:
+            break
+    end_time = time.time()
+
+    time_per_combination = (end_time - start_time) / sample_count
+    estimated_time = total_combinations * time_per_combination
+
+    print(colored(f"\nEstimated Wordlist Size: {size_in_mb:.2f} MB", "magenta", attrs=["bold"]))
+    print(colored(f"Estimated Generation Time: {estimated_time / 60:.2f} minutes", "cyan", attrs=["bold"]))
+
+
+# Main function
+def main():
+    print_banner()
+
+    # Inputs with unique colors
+    characters = input(colored("\nEnter characters (e.g., abc123) or press [1] for common sets: ", "blue", attrs=["bold"]))
+    if characters == "1":
+        characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()"
+
+    min_length = int(input(colored("Enter minimum length: ", "magenta", attrs=["bold"])))
+    max_length = int(input(colored("Enter maximum length: ", "green", attrs=["bold"])))
+    wordlist_name = input(colored("Enter wordlist name (without extension): ", "yellow", attrs=["bold"]))
+
+    # Save file path with the given name
+    output_file = os.path.expanduser(f"~/{wordlist_name}.txt")
+
+    # Predict size and estimated time before generating
+    predict_size_and_time(characters, min_length, max_length)
+
+    # Generate the wordlist
+    generate_wordlist(characters, min_length, max_length, output_file)
+
+    # Compress the wordlist if required
+    compress_choice = input(colored("\nDo you want to compress the wordlist? (y/n): ", "blue", attrs=["bold"]))
+    if compress_choice.lower() == "y":
+        compress_wordlist(output_file)
+
+
+if __name__ == "__main__":
+    main()

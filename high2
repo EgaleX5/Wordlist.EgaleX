@@ -1,7 +1,9 @@
 import os
-from tqdm import tqdm  # For progress bar
-from termcolor import colored  # For colorful text
+from tqdm import tqdm
+from termcolor import colored
 import itertools
+import multiprocessing
+import time
 
 # Function to print colorful banner
 def print_banner():
@@ -12,33 +14,67 @@ def print_banner():
     print(colored("Welcome to generate Wordlist  🦅", "yellow", attrs=["bold"]))
     print(colored("=" * 60, "white"))
 
-# Function to create wordlist
+# Function to generate wordlist with progress bar and parallelization
 def generate_wordlist(characters, min_length, max_length, output_file):
     total_combinations = sum(len(characters) ** i for i in range(min_length, max_length + 1))
     progress_bar = tqdm(total=total_combinations, desc=colored("Generating Wordlist", "green"), ncols=80)
-
-    with open(output_file, "w") as file:
-        for length in range(min_length, max_length + 1):
+    
+    # Use a Manager to handle shared file writing
+    manager = multiprocessing.Manager()
+    file_list = manager.list()
+    
+    # Worker function to generate combinations
+    def worker(start, end):
+        local_list = []
+        for length in range(start, end):
             for combination in itertools.product(characters, repeat=length):
                 word = ''.join(combination)
-                file.write(word + "\n")
+                local_list.append(word)
                 progress_bar.update(1)
+        file_list.extend(local_list)  # Add results to the shared list
+
+    # Divide the work among available CPU cores
+    num_workers = multiprocessing.cpu_count()
+    ranges = [(min_length + (max_length - min_length) // num_workers * i, 
+               min_length + (max_length - min_length) // num_workers * (i + 1)) 
+              for i in range(num_workers)]
+    
+    # Use multiprocessing to handle each range of lengths
+    processes = []
+    for r in ranges:
+        p = multiprocessing.Process(target=worker, args=(r[0], r[1]))
+        processes.append(p)
+        p.start()
+
+    for p in processes:
+        p.join()
 
     progress_bar.close()
+
+    # Write to the file in the main process after all workers are done
+    with open(output_file, "w") as file:
+        for word in file_list:
+            file.write(word + "\n")
+
     print(colored(f"\nWordlist saved to: {output_file}", "cyan", attrs=["bold"]))
 
 # Main function
 def main():
     print_banner()
-
+    
     # Inputs with unique colors
     characters = input(colored("\nEnter characters (e.g., abc123): ", "blue", attrs=["bold"]))
     min_length = int(input(colored("Enter minimum length: ", "magenta", attrs=["bold"])))
     max_length = int(input(colored("Enter maximum length: ", "green", attrs=["bold"])))
     wordlist_name = input(colored("Enter wordlist name (without extension): ", "yellow", attrs=["bold"]))
-    
-    # Save file path with the given name
+
+    # Check if the file already exists and ask for confirmation
     output_file = os.path.expanduser(f"~/{wordlist_name}.txt")
+    if os.path.exists(output_file):
+        overwrite = input(colored(f"File {wordlist_name}.txt already exists. Overwrite? (y/n): ", "red"))
+        if overwrite.lower() != 'y':
+            print(colored("Operation canceled.", "red"))
+            return
 
     generate_wordlist(characters, min_length, max_length, output_file)
 

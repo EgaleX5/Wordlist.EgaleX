@@ -1,0 +1,102 @@
+import os
+import itertools
+import multiprocessing
+import zipfile
+from tqdm import tqdm
+from termcolor import colored
+import time
+import math
+
+MAX_TIME_LIMIT = 24 * 60 * 60  # 24 घंटे (सेकंड में)
+
+
+# Function to print banner
+def print_banner():
+    os.system('clear')
+    print(colored("=== E G A L E X 5 ===", "red", attrs=["bold"]))
+    print(colored("    --- Hacking is not a crime, it's skills ---", "red"))
+    print(colored("=" * 60, "white"))
+    print(colored("Welcome to Generate Wordlist 🦅", "yellow", attrs=["bold"]))
+    print(colored("=" * 60, "white"))
+
+
+# Generate wordlist with multiprocessing
+def generate_batch_wordlist(characters, length, output_file, start_time):
+    if time.time() - start_time >= MAX_TIME_LIMIT:
+        print(colored("\nTime limit reached! Stopping generation.", "red", attrs=["bold"]))
+        os._exit(0)
+
+    with open(output_file, "a") as file:
+        for combination in itertools.product(characters, repeat=length):
+            word = ''.join(combination)
+            file.write(word + "\n")
+
+
+def generate_wordlist(characters, min_length, max_length, output_file):
+    start_time = time.time()
+    manager = multiprocessing.Manager()
+    pool = multiprocessing.Pool(processes=os.cpu_count())  # Utilize all CPU cores
+
+    tasks = []
+    for length in range(min_length, max_length + 1):
+        tasks.append(pool.apply_async(generate_batch_wordlist, args=(characters, length, output_file, start_time)))
+
+    pool.close()
+    pool.join()
+
+    total_time = time.time() - start_time
+    file_size = os.path.getsize(output_file) / (1024 * 1024)  # File size in MB
+
+    print(colored(f"\nWordlist saved to: {output_file}", "cyan", attrs=["bold"]))
+    print(colored(f"Final Wordlist Size: {file_size:.2f} MB", "magenta", attrs=["bold"]))
+    print(colored(f"Total Generation Time: {total_time / 60:.2f} minutes", "green", attrs=["bold"]))
+
+
+# Predict wordlist size and estimate time
+def predict_size_and_time(characters, min_length, max_length):
+    total_combinations = sum(len(characters) ** i for i in range(min_length, max_length + 1))
+    avg_word_size = (min_length + max_length) / 2  # Average size per word
+    estimated_size_mb = (total_combinations * avg_word_size) / (1024 * 1024)  # Estimated size in MB
+
+    # Time estimation with a small sample
+    sample_combinations = itertools.product(characters, repeat=min_length)
+    sample_count = 1000
+    start_time = time.time()
+    for i, _ in enumerate(sample_combinations):
+        if i >= sample_count:
+            break
+    end_time = time.time()
+
+    time_per_combination = (end_time - start_time) / sample_count
+    estimated_time_seconds = total_combinations * time_per_combination
+    estimated_time_minutes = estimated_time_seconds / 60
+
+    print(colored(f"\nEstimated Wordlist Size: {estimated_size_mb:.2f} MB", "magenta", attrs=["bold"]))
+    print(colored(f"Estimated Generation Time: {estimated_time_minutes:.2f} minutes", "cyan", attrs=["bold"]))
+
+
+# Main function
+def main():
+    print_banner()
+
+    # Inputs with unique colors
+    characters = input(colored("\nEnter characters (e.g., abc123) or press [1] for common sets: ", "blue", attrs=["bold"]))
+    if characters == "1":
+        characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()"
+
+    min_length = int(input(colored("Enter minimum length: ", "magenta", attrs=["bold"])))
+    max_length = int(input(colored("Enter maximum length: ", "green", attrs=["bold"])))
+    wordlist_name = input(colored("Enter wordlist name (without extension): ", "yellow", attrs=["bold"]))
+
+    # Save file path with the given name
+    output_file = os.path.expanduser(f"~/{wordlist_name}.txt")
+
+    # Predict size and estimated time before generating
+    predict_size_and_time(characters, min_length, max_length)
+
+    # Generate the wordlist
+    generate_wordlist(characters, min_length, max_length, output_file)
+
+
+if __name__ == "__main__":
+    main()

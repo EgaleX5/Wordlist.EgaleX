@@ -1,0 +1,85 @@
+import os
+import itertools
+import multiprocessing
+from tqdm import tqdm
+from termcolor import colored
+import time
+
+
+def print_banner():
+    os.system('clear')
+    print(colored("=== E G A L E X 5 ===", "red", attrs=["bold"]))
+    print(colored("    --- Hacking is not a crime, it's skills ---", "red"))
+    print(colored("=" * 60, "white"))
+    print(colored("Welcome to Generate Wordlist 🦅", "yellow", attrs=["bold"]))
+    print(colored("=" * 60, "white"))
+
+
+def write_combinations(characters, length, queue):
+    """Generate combinations and push to queue."""
+    for combination in itertools.product(characters, repeat=length):
+        queue.put(''.join(combination))
+
+
+def write_to_file(output_file, queue, total_combinations):
+    """Write combinations to file from queue."""
+    progress_bar = tqdm(total=total_combinations, desc=colored("Generating Wordlist", "green"), ncols=80)
+
+    with open(output_file, "w") as file:
+        while total_combinations > 0:
+            word = queue.get()
+            file.write(word + "\n")
+            progress_bar.update(1)
+            total_combinations -= 1
+
+    progress_bar.close()
+    print(colored(f"\nWordlist saved to: {output_file}", "cyan", attrs=["bold"]))
+
+
+def generate_wordlist_parallel(characters, min_length, max_length, output_file):
+    """Parallel wordlist generation."""
+    manager = multiprocessing.Manager()
+    queue = manager.Queue()
+    total_combinations = sum(len(characters) ** i for i in range(min_length, max_length + 1))
+
+    # Writer process
+    writer_process = multiprocessing.Process(target=write_to_file, args=(output_file, queue, total_combinations))
+    writer_process.start()
+
+    # Generate combinations in parallel
+    processes = []
+    for length in range(min_length, max_length + 1):
+        p = multiprocessing.Process(target=write_combinations, args=(characters, length, queue))
+        processes.append(p)
+        p.start()
+
+    for p in processes:
+        p.join()
+
+    writer_process.join()
+
+
+def main():
+    print_banner()
+
+    characters = input(colored("\nEnter characters (e.g., abc123) or press [1] for common sets: ", "blue", attrs=["bold"]))
+    if characters == "1":
+        characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()"
+
+    min_length = int(input(colored("Enter minimum length: ", "magenta", attrs=["bold"])))
+    max_length = int(input(colored("Enter maximum length: ", "green", attrs=["bold"])))
+    wordlist_name = input(colored("Enter wordlist name (without extension): ", "yellow", attrs=["bold"]))
+
+    output_file = os.path.expanduser(f"~/{wordlist_name}.txt")
+
+    print(colored("\nStarting Wordlist Generation...", "cyan", attrs=["bold"]))
+    start_time = time.time()
+
+    generate_wordlist_parallel(characters, min_length, max_length, output_file)
+
+    total_time = time.time() - start_time
+    print(colored(f"\nTotal Generation Time: {total_time / 60:.2f} minutes", "green", attrs=["bold"]))
+
+
+if __name__ == "__main__":
+    main()
